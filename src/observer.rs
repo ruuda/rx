@@ -18,6 +18,70 @@ pub trait Observer<T, E> {
     fn on_error(self, error: E);
 }
 
+pub struct NextObserver<FnNext> {
+    pub fn_next: FnNext,
+}
+
+pub struct CompletedObserver<FnNext, FnCompleted> {
+    pub fn_next: FnNext,
+    pub fn_completed: FnCompleted,
+}
+
+pub struct ErrorObserver<FnNext, FnCompleted, FnError> {
+    pub fn_next: FnNext,
+    pub fn_completed: FnCompleted,
+    pub fn_error: FnError,
+}
+
+impl<T, E, FnNext> Observer<T, E> for NextObserver<FnNext>
+    where E: Debug, FnNext: FnMut(T) {
+
+    fn on_next(&mut self, item: T) {
+        self.fn_next.call_mut((item,));
+    }
+
+    fn on_completed(self) {
+        // Ignore completion.
+    }
+
+    fn on_error(self, error: E) {
+        panic!("observer received error: {:?}", error);
+    }
+}
+
+impl<T, E, FnNext, FnCompleted> Observer<T, E> for CompletedObserver<FnNext, FnCompleted>
+    where E: Debug, FnNext: FnMut(T), FnCompleted: FnOnce() {
+
+    fn on_next(&mut self, item: T) {
+        self.fn_next.call_mut((item,));
+    }
+
+    fn on_completed(self) {
+        self.fn_completed.call_once(());
+    }
+
+    fn on_error(self, error: E) {
+        panic!("observer received error: {:?}", error);
+    }
+}
+
+impl<T, E, FnNext, FnCompleted, FnError>
+    Observer<T, E> for ErrorObserver<FnNext, FnCompleted, FnError>
+    where FnNext: FnMut(T), FnCompleted: FnOnce(), FnError: FnOnce(E) {
+
+    fn on_next(&mut self, item: T) {
+        self.fn_next.call_mut((item,));
+    }
+
+    fn on_completed(self) {
+        self.fn_completed.call_once(());
+    }
+
+    fn on_error(self, error: E) {
+        self.fn_error.call_once((error,));
+    }
+}
+
 pub trait PanickingObserver<T> {
     /// Provides the observer with new data.
     fn on_next(&mut self, item: T);
