@@ -5,6 +5,8 @@
 // you may not use this file except in compliance with the License.
 // A copy of the License has been included in the root of the repository.
 
+use std::fmt::Debug;
+
 pub trait Observer<T, E> {
     /// Provides the observer with new data.
     fn on_next(&mut self, item: T);
@@ -25,19 +27,19 @@ pub trait PanickingObserver<T> {
 
     /// Creates an `Observer` out of a `PanickingObserver`.
     ///
-    /// An `on_error()` call is handled by panicking.
-    fn panic_on_error(self) -> PanickingObserverWrapper<Self> where Self: Sized {
-        PanickingObserverWrapper {
+    /// An `on_error()` call to the observer is handled by panicking.
+    fn unwrap(self) -> UnwrappingObserver<Self> where Self: Sized {
+        UnwrappingObserver {
             panicking_observer: self
         }
     }
 }
 
-pub struct PanickingObserverWrapper<O: Sized> {
-    panicking_observer: O
+pub struct UnwrappingObserver<PO: Sized> {
+    panicking_observer: PO
 }
 
-impl<T, E, O: PanickingObserver<T>> Observer<T, E> for PanickingObserverWrapper<O> {
+impl<T, E: Debug, PO: PanickingObserver<T>> Observer<T, E> for UnwrappingObserver<PO> {
     fn on_next(&mut self, item: T) {
         self.panicking_observer.on_next(item);
     }
@@ -47,7 +49,7 @@ impl<T, E, O: PanickingObserver<T>> Observer<T, E> for PanickingObserverWrapper<
     }
 
     fn on_error(self, error: E) {
-        panic!("panicking observer received error");
+        panic!("panicking observer received error: {:?}", error);
     }
 }
 
