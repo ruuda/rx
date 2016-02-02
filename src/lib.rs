@@ -9,7 +9,7 @@
 
 mod observer;
 
-pub use observer::Observer;
+pub use observer::{Observer, PanickingObserver};
 
 trait Observable {
     type Item;
@@ -19,9 +19,7 @@ trait Observable {
     fn subscribe<O: Observer<Self::Item, Self::Error>>(observer: O) -> Self::Subscription;
 }
 
-#[cfg(test)]
-mod test {
-    #[test]
-    fn it_works() {
-    }
+#[test]
+fn it_works() {
+
 }

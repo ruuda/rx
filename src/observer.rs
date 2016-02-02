@@ -16,6 +16,41 @@ pub trait Observer<T, E> {
     fn on_error(self, error: E);
 }
 
+pub trait PanickingObserver<T> {
+    /// Provides the observer with new data.
+    fn on_next(&mut self, item: T);
+
+    /// Notifies the observer that the provider has finished sending notifications.
+    fn on_completed(self);
+
+    /// Creates an `Observer` out of a `PanickingObserver`.
+    ///
+    /// An `on_error()` call is handled by panicking.
+    fn panic_on_error(self) -> PanickingObserverWrapper<Self> where Self: Sized {
+        PanickingObserverWrapper {
+            panicking_observer: self
+        }
+    }
+}
+
+pub struct PanickingObserverWrapper<O: Sized> {
+    panicking_observer: O
+}
+
+impl<T, E, O: PanickingObserver<T>> Observer<T, E> for PanickingObserverWrapper<O> {
+    fn on_next(&mut self, item: T) {
+        self.panicking_observer.on_next(item);
+    }
+
+    fn on_completed(self) {
+        self.panicking_observer.on_completed();
+    }
+
+    fn on_error(self, error: E) {
+        panic!("panicking observer received error");
+    }
+}
+
 /// Observer implementation for functions.
 ///
 /// Observer behavior translates into a function all as follows:
@@ -36,5 +71,22 @@ impl<F, T, E> Observer<T, E> for F where F: FnMut(Option<Result<T, E>>) {
 
     fn on_error(self, error: E) {
         self.call_once((Some(Err(error)),));
+    }
+}
+
+/// Observer implementation for functions ignoring error handling.
+///
+/// Observer behavior translates into a function all as follows:
+///
+///  * `on_next(item)` calls the function with `Some(Ok(item))`.
+///  * `on_completed()` calls the function with `None`.
+///    The function will not be called after that.
+impl<F, T> PanickingObserver<T> for F where F: FnMut(Option<T>) {
+    fn on_next(&mut self, item: T) {
+        self.call_mut((Some(item),));
+    }
+
+    fn on_completed(self) {
+        self.call_once((None,));
     }
 }
