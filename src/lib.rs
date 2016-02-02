@@ -13,7 +13,7 @@ use std::iter::IntoIterator;
 
 mod observer;
 
-pub use observer::{Observer, PanickingObserver};
+pub use observer::Observer;
 
 trait Observable {
     type Item;
@@ -99,12 +99,6 @@ impl<'i, I> Observable for &'i I where &'i I: IntoIterator {
         observer.on_completed();
         UncancellableSubscription
     }
-}
-
-#[test]
-fn subscribe_to_slice() {
-    let mut values = &[2u8, 3, 5, 7, 11, 13];
-    values.subscribe(|x| println!("{:?}", x));
 }
 
 #[test]
