@@ -99,3 +99,25 @@ fn subscribe_next_slice() {
     values.subscribe_next(|&x| received.push(x));
     assert_eq!(&values[..], &received[..]);
 }
+
+#[test]
+fn subscribe_completed_slice() {
+    let mut values = &[2u8, 3, 5, 7, 11, 13];
+    let mut received = Vec::new();
+    let mut completed = false;
+    values.subscribe_completed(|&x| received.push(x), || completed = true);
+    assert_eq!(&values[..], &received[..]);
+    assert!(completed);
+}
+
+#[test]
+fn subscribe_error_slice() {
+    let mut values = &[2u8, 3, 5, 7, 11, 13];
+    let mut received = Vec::new();
+    let mut completed = false;
+    let mut failed = false;
+    values.subscribe_error(|&x| received.push(x), || completed = true, |err| failed = true);
+    assert_eq!(&values[..], &received[..]);
+    assert!(completed);
+    assert!(!failed);
+}
