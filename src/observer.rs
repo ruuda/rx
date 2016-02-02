@@ -7,6 +7,7 @@
 
 use std::fmt::Debug;
 
+/// An observer that receives values from an observable.
 pub trait Observer<T, E> {
     /// Provides the observer with new data.
     fn on_next(&mut self, item: T);
