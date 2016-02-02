@@ -1,0 +1,5 @@
+[package]
+name = "rx"
+version = "0.0.0"
+authors = ["Ruud van Asseldonk <dev@veniogames.com>"]
+license = "Apache-2.0"
