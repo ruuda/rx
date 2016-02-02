@@ -21,7 +21,7 @@ use std::iter::IntoIterator;
 
 mod observer;
 
-pub use observer::Observer;
+pub use observer::{Observer, BoxedObserver};
 
 /// A stream of values.
 ///

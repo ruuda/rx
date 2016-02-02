@@ -122,3 +122,28 @@ impl<T, E, FnResult> Observer<T, E> for ResultObserver<FnResult>
         self.fn_result.call_mut((Err(error),));
     }
 }
+
+/// Trait that enables using `Observer` as a trait object.
+///
+/// The methods `on_completed()` and `on_error()` cannot be called on trait objects,
+/// because they take self by value, and the size of self is not known for a trait
+/// object. Fortunately, this can be worked around by taking self as box instead of
+/// by value. To keep the `Observer` trait simple, these methods have been moved here
+/// with automatic implementations.
+pub trait BoxedObserver<T, E>: Observer<T, E> {
+    /// As `on_completed()`, but takes self as box so it can be called on a trait object.
+    fn on_completed_box(self: Box<Self>);
+
+    /// As `on_error()`, but takes self as box so it can be called on a trait object.
+    fn on_error_box(self: Box<Self>, error: E);
+}
+
+impl<O, T, E> BoxedObserver<T, E> for O where O: Observer<T, E> {
+    fn on_completed_box(self: Box<Self>) {
+        self.on_completed();
+    }
+
+    fn on_error_box(self: Box<Self>, error: E) {
+        self.on_error(error);
+    }
+}
