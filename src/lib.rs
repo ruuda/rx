@@ -50,10 +50,10 @@ pub use observer::{Observer, BoxedObserver};
 /// use an observable of `Result`.
 pub trait Observable {
     /// The value produced by the observable.
-    type Item;
+    type Item: Clone;
 
     /// The error produced if the observable fails.
-    type Error;
+    type Error: Clone;
 
     /// The result of subscribing an observer.
     type Subscription: Drop;
@@ -190,7 +190,7 @@ impl Drop for UncancellableSubscription {
     fn drop(&mut self) { }
 }
 
-impl<'i, I> Observable for &'i I where &'i I: IntoIterator {
+impl<'i, I> Observable for &'i I where &'i I: IntoIterator, <&'i I as IntoIterator>::Item: Clone {
     type Item = <&'i I as IntoIterator>::Item;
     type Error = ();
     type Subscription = UncancellableSubscription;
