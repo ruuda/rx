@@ -33,6 +33,14 @@ pub struct ErrorObserver<FnNext, FnCompleted, FnError> {
     pub fn_error: FnError,
 }
 
+pub struct OptionObserver<FnOption> {
+    pub fn_option: FnOption
+}
+
+pub struct ResultObserver<FnResult> {
+    pub fn_result: FnResult
+}
+
 impl<T, E, FnNext> Observer<T, E> for NextObserver<FnNext>
     where E: Debug, FnNext: FnMut(T) {
 
@@ -79,6 +87,38 @@ impl<T, E, FnNext, FnCompleted, FnError>
 
     fn on_error(self, error: E) {
         self.fn_error.call_once((error,));
+    }
+}
+
+impl<T, E, FnOption> Observer<T, E> for OptionObserver<FnOption>
+    where E: Debug, FnOption: FnMut(Option<T>) {
+
+    fn on_next(&mut self, item: T) {
+        self.fn_option.call_mut((Some(item),));
+    }
+
+    fn on_completed(mut self) {
+        self.fn_option.call_mut((None,));
+    }
+
+    fn on_error(self, error: E) {
+        panic!("observer received error: {:?}", error);
+    }
+}
+
+impl<T, E, FnResult> Observer<T, E> for ResultObserver<FnResult>
+    where FnResult: FnMut(Result<Option<T>, E>) {
+
+    fn on_next(&mut self, item: T) {
+        self.fn_result.call_mut((Ok(Some(item)),));
+    }
+
+    fn on_completed(mut self) {
+        self.fn_result.call_mut((Ok(None),));
+    }
+
+    fn on_error(mut self, error: E) {
+        self.fn_result.call_mut((Err(error),));
     }
 }
 
