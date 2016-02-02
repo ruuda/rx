@@ -20,8 +20,10 @@ use std::fmt::Debug;
 use std::iter::IntoIterator;
 
 mod observer;
+mod subject;
 
 pub use observer::{Observer, BoxedObserver};
+pub use subject::Subject;
 
 /// A stream of values.
 ///
