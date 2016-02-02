@@ -13,12 +13,12 @@ mod observer;
 
 pub use observer::{Observer, PanickingObserver};
 
-trait Observable<'this> where Self: 'this {
+trait Observable {
     type Item;
     type Error;
     type Subscription: Drop;
 
-    fn subscribe<O>(&'this mut self, observer: O) -> Self::Subscription
+    fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error>;
 }
 
@@ -28,12 +28,12 @@ impl Drop for UncancellableSubscription {
     fn drop(&mut self) { }
 }
 
-impl<'i, I> Observable<'i> for &'i I where &'i I: IntoIterator {
+impl<'i, I> Observable for &'i I where &'i I: IntoIterator {
     type Item = <&'i I as IntoIterator>::Item;
     type Error = ();
     type Subscription = UncancellableSubscription;
 
-    fn subscribe<O>(&'i mut self, mut observer: O) -> UncancellableSubscription
+    fn subscribe<O>(&mut self, mut observer: O) -> UncancellableSubscription
         where O: Observer<Self::Item, Self::Error> {
         for x in self.into_iter() {
             observer.on_next(x);
