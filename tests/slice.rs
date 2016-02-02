@@ -52,7 +52,7 @@ fn subscribe_option_slice() {
 fn subscribe_result_slice() {
     let mut values = &[2u8, 3, 5, 7];
     let expected = &[Ok(Some(2u8)), Ok(Some(3)), Ok(Some(5)), Ok(Some(7)), Ok(None)];
-    let mut received: Vec<Result<Option<u8>, ()>> = Vec::new();
+    let mut received = Vec::new();
     values.subscribe_result(|x| received.push(x.map(|y| y.cloned())));
     assert_eq!(&received[..], &expected[..]);
 }
