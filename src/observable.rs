@@ -8,6 +8,7 @@
 use observer::Observer;
 use observer::{NextObserver, CompletedObserver, ErrorObserver, OptionObserver, ResultObserver};
 use std::fmt::Debug;
+use transform::MapObservable;
 
 /// A stream of values.
 ///
@@ -166,5 +167,11 @@ pub trait Observable {
             fn_result: on_next_or_completed_or_error
         };
         self.subscribe(observer)
+    }
+
+    /// Transforms an observable by applying f to every value produced.
+    fn map<'s, U, F>(&'s mut self, f: F) -> MapObservable<'s, Self, F>
+        where F: Fn(Self::Item) -> U {
+        MapObservable::new(self, f)
     }
 }

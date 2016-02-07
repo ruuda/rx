@@ -20,6 +20,7 @@ use std::iter::IntoIterator;
 mod observable;
 mod observer;
 mod subject;
+mod transform;
 
 pub use observable::Observable;
 pub use observer::Observer;
