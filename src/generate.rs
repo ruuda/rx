@@ -28,6 +28,11 @@ impl<T: Clone, E: Clone> Observable for ErrorObservable<T, E> {
 }
 
 /// Returns an observable that fails with the given error when subscribed to.
+///
+/// On its own an observable that always fails has limited use, but it can be
+/// convenient when combining observables.
+///
+/// TODO: Add example once `continue_with` has been implemented.
 pub fn error<T: Clone, E: Clone>(error: E) -> ErrorObservable<T, E> {
     ErrorObservable {
         _phantom_t: PhantomData,
