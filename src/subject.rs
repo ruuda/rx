@@ -5,16 +5,21 @@
 // you may not use this file except in compliance with the License.
 // A copy of the License has been included in the root of the repository.
 
+use observable::Observable;
 use observer::{Observer, BoxedObserver};
 
 /// Both an observer and observable.
 ///
 /// A subject is a low-level primitive for creating observables.
 ///
-/// TODO: Flesh out how this will work; if it is a memer, it likely should not expose the
-/// observer methods but only the observable methods. Have a proxy object?
+/// TODO: Add example.
 pub struct Subject<T, E> {
     observers: Vec<Box<BoxedObserver<T, E>>>,
+}
+
+/// Proxy object that exposes the observable part of a subject.
+pub struct SubjectObservable<'s, T: 's, E: 's> {
+    subject: &'s mut Subject<T, E>,
 }
 
 impl<T, E> Subject<T, E> {
@@ -22,6 +27,17 @@ impl<T, E> Subject<T, E> {
     pub fn new() -> Subject<T, E> {
         Subject {
             observers: Vec::new(),
+        }
+    }
+
+    /// Returns a proxy object that exposes the observable part of a subject.
+    ///
+    /// This can be used to avoid exposing the observer methods while still
+    /// allowing subscription. When a subject is used internally as the source
+    /// of an observable, a getter can expose the `observable()` of the subject.
+    pub fn observable<'s>(&'s mut self) -> SubjectObservable<'s, T, E> {
+        SubjectObservable {
+            subject: self,
         }
     }
 }
@@ -43,5 +59,18 @@ impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
         for observer in self.observers.drain(..) {
             observer.on_error_box(error.clone());
         }
+    }
+}
+
+impl<'s, T: Clone, E: Clone> Observable for SubjectObservable<'s, T, E> {
+    type Item = T;
+    type Error = E;
+    type Subscription = super::UncancellableSubscription; // TODO: Make it cancellable.
+
+    fn subscribe<O: 'static>(&mut self, observer: O) -> Self::Subscription
+        where O: Observer<Self::Item, Self::Error> {
+        let boxed: Box<BoxedObserver<T, E>> = Box::new(observer);
+        self.subject.observers.push(boxed);
+        super::UncancellableSubscription
     }
 }
