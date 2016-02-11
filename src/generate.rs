@@ -33,6 +33,7 @@ impl<T: Clone, E: Clone> Observable for ErrorObservable<T, E> {
 /// convenient when combining observables.
 ///
 /// TODO: Add example once `continue_with` has been implemented.
+/// TODO: Actually, `Err(error)` can already be used for this. This should be removed.
 pub fn error<T: Clone, E: Clone>(error: E) -> ErrorObservable<T, E> {
     ErrorObservable {
         _phantom_t: PhantomData,
