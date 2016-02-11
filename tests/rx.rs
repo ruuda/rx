@@ -46,6 +46,42 @@ fn result_subscribe_next_err() {
     result.subscribe_next(|x| received = Some(x));
 }
 
+#[test]
+fn result_subscribe_completed_ok() {
+    let mut result: Result<u32, ()> = Ok(13);
+    let mut received = None;
+    let mut completed = false;
+    result.subscribe_completed(|x| received = Some(x), || completed = true);
+    assert_eq!(Some(13), received);
+    assert!(completed);
+}
+
+#[test]
+fn result_subscribe_error_ok() {
+    let mut result: Result<u32, ()> = Ok(13);
+    let mut received = None;
+    let mut completed = false;
+    result.subscribe_error(
+        |x| received = Some(x),
+        || completed = true,
+        |_err| panic!("ok result should not be a failing observable")
+    );
+    assert_eq!(Some(13), received);
+    assert!(completed);
+}
+
+#[test]
+fn result_subscribe_error_err() {
+    let mut result: Result<(), u32> = Err(17);
+    let mut error = None;
+    result.subscribe_error(
+        |_x| panic!("err result should not push a value"),
+        || panic!("err result should not complete"),
+        |err| error = Some(err)
+    );
+    assert_eq!(Some(17), error);
+}
+
 // Slice tests
 
 #[test]
