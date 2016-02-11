@@ -35,8 +35,25 @@
 //! some.subscribe_next(|x| println!("received {}", x));
 //! ```
 //!
+//! Observables that push their values immediately upon subscription might not
+//! seem all that useful at first sight, but they come in handy to construct
+//! more complex observables.
+//!
+//! TODO: Add `continue_with` example once that has been implemented.
+//!
 //! TODO: Could I have an `ImmutableObservable` to get rid of the mutability
 //! requirement?
+//!
+//! Anything that can be converted into an iterator is also an observable. Such
+//! an observable pushes all its values immediately upon subscription. If the
+//! iterator is infinite, the call to `subscribe()` will never return. The
+//! following example prints the first five prime numbers:
+//!
+//! ```
+//! use rx::Observable;
+//! let mut primes = &[2u32, 3, 5, 7, 11];
+//! primes.subscribe_next(|x| println!("received {}", x));
+//! ```
 
 #![warn(missing_docs)]
 #![feature(fn_traits, unboxed_closures)]
