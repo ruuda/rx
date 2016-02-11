@@ -26,6 +26,60 @@ fn error() {
     assert_eq!(Some(error), received_err);
 }
 
+// Option tests
+
+#[test]
+fn option_subscribe_next() {
+    let mut received = None;
+
+    // Subscribing to `Some` should push the value.
+    Some(19).subscribe_next(|x| received = Some(x));
+    assert_eq!(Some(19), received);
+
+    None.subscribe_next(|_x: u32| panic!("none should not push a value"));
+}
+
+#[test]
+fn option_subscribe_completed() {
+    let mut received = None;
+    let mut completed = false;
+
+    // Subscribing to `Some` should complete after pushing the value.
+    Some(19).subscribe_completed(|x| received = Some(x), || completed = true);
+    assert_eq!(Some(19), received);
+    assert!(completed);
+
+    // Subscribing to `None` should complete without pushing a value.
+    completed = false;
+    None.subscribe_completed(
+        |_x: u32| panic!("none should not push a value"),
+        || completed = true
+    );
+    assert!(completed);
+}
+
+#[test]
+fn option_subscribe_error() {
+    let mut received = None;
+    let mut completed = false;
+
+    Some(23).subscribe_error(
+        |x| received = Some(x),
+        || completed = true,
+        |_err| panic!("some observable should not fail")
+    );
+    assert_eq!(Some(23), received);
+    assert!(completed);
+
+    completed = false;
+    None.subscribe_error(
+        |_x: u32| panic!("none should not push a value"),
+        || completed = true,
+        |_err| panic!("none observable should not fail")
+    );
+    assert!(completed);
+}
+
 // Result tests
 
 #[test]

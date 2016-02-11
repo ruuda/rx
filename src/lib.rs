@@ -40,7 +40,7 @@ impl Drop for UncancellableSubscription {
 /// Upon subscription, this pushes a value for every value returned by the
 /// iterator and then completes (if the iterator is finite). The returned
 /// subscription is not cancellable: if the observable completes, it completes
-/// before the call to `subscribe()` returns.
+/// before the call to `subscribe()` returns. This observable does not fail.
 impl<'i, I> Observable for &'i I where &'i I: IntoIterator, <&'i I as IntoIterator>::Item: Clone {
     type Item = <&'i I as IntoIterator>::Item;
     type Error = ();
@@ -78,6 +78,27 @@ impl<T: Clone, E: Clone> Observable for Result<T, E> {
                 observer.on_error(error.clone());
             }
         }
+        UncancellableSubscription
+    }
+}
+
+/// Observable implementation for `Option`.
+///
+/// Upon subscription, this pushes the value if the option is `Some`, and then
+/// completes. If the option is `None` it completes immediately. The returned
+/// subscription is not cancellable: the observable completes before the call to
+/// `subscribe()` returns. This observable does not fail.
+impl<T: Clone> Observable for Option<T> {
+    type Item = T;
+    type Error = ();
+    type Subscription = UncancellableSubscription;
+
+    fn subscribe<O>(&mut self, mut observer: O) -> UncancellableSubscription
+        where O: Observer<Self::Item, Self::Error> {
+        if let Some(ref item) = *self {
+            observer.on_next(item.clone());
+        }
+        observer.on_completed();
         UncancellableSubscription
     }
 }
