@@ -11,6 +11,32 @@
 //! TODO: Add intro to observables for people who are unfamiliar with them.
 //!
 //! TODO: Add examples.
+//!
+//! # Simple Observables
+//!
+//! The `Option` and `Result` types implement `Observable`. These can be used
+//! to create empty or singleton observables.
+//!
+//!  * `Some(x)` and `Ok(x)` both produce `x` upon subscription and complete
+//!    immediately.
+//!  * `None` does not produce any value and completes immediately upon
+//!    subscription.
+//!  * `Err(err)` fails with `err` upon subscription.
+//!
+//! Note that subscribing to an option or result does not modify it in any way.
+//! (Subscribing requires a mutable reference, because in general, the
+//! observable might want to store the observer.) For instance, the following
+//! example prints “received 7” twice.
+//!
+//! ```
+//! use rx::Observable;
+//! let mut some = Some(7);
+//! some.subscribe_next(|x| println!("received {}", x));
+//! some.subscribe_next(|x| println!("received {}", x));
+//! ```
+//!
+//! TODO: Could I have an `ImmutableObservable` to get rid of the mutability
+//! requirement?
 
 #![warn(missing_docs)]
 #![feature(fn_traits, unboxed_closures)]
