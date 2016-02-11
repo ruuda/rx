@@ -8,6 +8,8 @@
 extern crate rx;
 
 use rx::{Observable, Observer, Subject};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 // Generator tests
 
@@ -123,6 +125,45 @@ fn subject_on_error() {
 
     subject.on_error(41);
     assert_eq!(41, error);
+}
+
+/// Helper for the `subject_clones_once_per_observer()` test.
+struct CloneCounter {
+    counter: Rc<RefCell<u32>>,
+}
+
+impl Clone for CloneCounter {
+    fn clone(&self) -> CloneCounter {
+        let count: u32 = *self.counter.borrow();
+        *self.counter.borrow_mut() = count + 1;
+        CloneCounter {
+            counter: self.counter.clone(),
+        }
+    }
+}
+
+#[test]
+fn subject_clones_once_per_observer() {
+    let mut subject = Subject::<CloneCounter, ()>::new();
+    let mut first_called = false;
+    let mut second_called = false;
+    let counter = CloneCounter {
+        counter: Rc::new(RefCell::new(0)),
+    };
+
+    // Subscribe twice.
+    subject.observable().subscribe_next(|_x| first_called = true);
+    subject.observable().subscribe_next(|_x| second_called = true);
+
+    // Nothing should have been cloned yet.
+    assert_eq!(0, *counter.counter.borrow());
+
+    subject.on_next(counter.clone());
+
+    // We cloned once, and the subject should have cloned once per subscription.
+    assert_eq!(3, *counter.counter.borrow());
+    assert!(first_called);
+    assert!(second_called);
 }
 
 // TODO: Test multiple subscriptions and combinations of values and completed/error.
