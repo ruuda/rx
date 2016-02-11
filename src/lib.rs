@@ -35,6 +35,12 @@ impl Drop for UncancellableSubscription {
     fn drop(&mut self) { }
 }
 
+/// Observable implementation for types that can be converted into an iterator.
+///
+/// Upon subscription, this pushes a value for every value returned by the
+/// iterator and then completes (if the iterator is finite). The returned
+/// subscription is not cancellable: if the observable completes, it completes
+/// before the call to `subscribe()` returns.
 impl<'i, I> Observable for &'i I where &'i I: IntoIterator, <&'i I as IntoIterator>::Item: Clone {
     type Item = <&'i I as IntoIterator>::Item;
     type Error = ();
@@ -46,6 +52,32 @@ impl<'i, I> Observable for &'i I where &'i I: IntoIterator, <&'i I as IntoIterat
             observer.on_next(x);
         }
         observer.on_completed();
+        UncancellableSubscription
+    }
+}
+
+/// Observable implementation for `Result`.
+///
+/// Upon subscription, this pushes either the result and completes, or the
+/// observable fails with the error. The returned subscription is not
+/// cancellable: the observable completes or fails before the call to
+/// `subscribe()` returns.
+impl<T: Clone, E: Clone> Observable for Result<T, E> {
+    type Item = T;
+    type Error = E;
+    type Subscription = UncancellableSubscription;
+
+    fn subscribe<O>(&mut self, mut observer: O) -> UncancellableSubscription
+        where O: Observer<Self::Item, Self::Error> {
+        match *self {
+            Ok(ref item) => {
+                observer.on_next(item.clone());
+                observer.on_completed();
+            }
+            Err(ref error) => {
+                observer.on_error(error.clone());
+            }
+        }
         UncancellableSubscription
     }
 }

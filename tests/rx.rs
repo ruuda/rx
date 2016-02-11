@@ -26,6 +26,26 @@ fn error() {
     assert_eq!(Some(error), received_err);
 }
 
+// Result tests
+
+#[test]
+fn result_subscribe_next_ok() {
+    let mut result: Result<u32, ()> = Ok(13);
+    let mut received = None;
+    result.subscribe_next(|x| received = Some(x));
+    assert_eq!(Some(13), received);
+}
+
+#[test]
+#[should_panic]
+fn result_subscribe_next_err() {
+    let mut result: Result<u32, ()> = Err(());
+    let mut received = None;
+
+    // This should panic, because we did not provide an error handler.
+    result.subscribe_next(|x| received = Some(x));
+}
+
 // Slice tests
 
 #[test]
