@@ -7,6 +7,14 @@
 
 use observable::Observable;
 use observer::{Observer, BoxedObserver};
+use std::rc;
+
+struct ObserverBox<T, E> {
+    observer: Box<BoxedObserver<T, E>>,
+
+    /// If the Rc is still alive, the observer should be kept alive.
+    alive: rc::Weak<()>,
+}
 
 /// Both an observer and observable.
 ///
@@ -14,12 +22,19 @@ use observer::{Observer, BoxedObserver};
 ///
 /// TODO: Add example.
 pub struct Subject<T, E> {
-    observers: Vec<Box<BoxedObserver<T, E>>>,
+    observers: Vec<ObserverBox<T, E>>,
 }
 
 /// Proxy object that exposes the observable part of a subject.
 pub struct SubjectObservable<'s, T: 's, E: 's> {
     subject: &'s mut Subject<T, E>,
+}
+
+pub struct SubjectSubscription {
+    /// The owner of the unit that `ObserverBox` has a weak reference to.
+    ///
+    /// Once this is dropped, the observer will not be used any more.
+    _alive: rc::Rc<()>,
 }
 
 impl<T, E> Subject<T, E> {
@@ -44,20 +59,38 @@ impl<T, E> Subject<T, E> {
 
 impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
     fn on_next(&mut self, item: T) {
-        for observer in &mut self.observers {
-            observer.on_next(item.clone());
+        for observer_box in &mut self.observers {
+            if let Some(_) = observer_box.alive.upgrade() {
+                // Subscription was not dropped, invoke method.
+                observer_box.observer.on_next(item.clone());
+            } else {
+                // TODO: Remove observer from list, the subscription has been
+                // dropped.
+            }
         }
     }
 
     fn on_completed(mut self) {
-        for observer in self.observers.drain(..) {
-            observer.on_completed_box();
+        for observer_box in self.observers.drain(..) {
+            if let Some(_) = observer_box.alive.upgrade() {
+                // Subscription was not dropped, invoke method.
+                observer_box.observer.on_completed_box();
+            } else {
+                // TODO: Remove observer from list, the subscription has been
+                // dropped.
+            }
         }
     }
 
     fn on_error(mut self, error: E) {
-        for observer in self.observers.drain(..) {
-            observer.on_error_box(error.clone());
+        for observer_box in self.observers.drain(..) {
+            if let Some(_) = observer_box.alive.upgrade() {
+                // Subscription was not dropped, invoke method.
+                observer_box.observer.on_error_box(error.clone());
+            } else {
+                // TODO: Remove observer from list, the subscription has been
+                // dropped.
+            }
         }
     }
 }
@@ -65,12 +98,25 @@ impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
 impl<'s, T: Clone, E: Clone> Observable for SubjectObservable<'s, T, E> {
     type Item = T;
     type Error = E;
-    type Subscription = super::UncancellableSubscription; // TODO: Make it cancellable.
+    type Subscription = SubjectSubscription;
 
     fn subscribe<O: 'static>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error> {
         let boxed: Box<BoxedObserver<T, E>> = Box::new(observer);
-        self.subject.observers.push(boxed);
-        super::UncancellableSubscription
+        let alive_owner = rc::Rc::new(());
+        let observer_box = ObserverBox {
+            observer: boxed,
+            alive: rc::Rc::downgrade(&alive_owner),
+        };
+        self.subject.observers.push(observer_box);
+        SubjectSubscription {
+            _alive: alive_owner,
+        }
+    }
+}
+
+impl Drop for SubjectSubscription {
+    fn drop(&mut self) {
+        // Nothing to do, the Rc already does the right thing.
     }
 }

@@ -192,7 +192,7 @@ fn slice_subscribe_result() {
 fn subject_on_next() {
     let mut subject = Subject::<u8, ()>::new();
     let mut received = Vec::new();
-    subject.observable().subscribe_next(|x| received.push(x));
+    let _subscription = subject.observable().subscribe_next(|x| received.push(x));
 
     // Subject should not push anything upon subscription.
     assert_eq!(0, received.len());
@@ -208,7 +208,7 @@ fn subject_on_next() {
 fn subject_on_completed() {
     let mut subject = Subject::<u8, ()>::new();
     let mut completed = false;
-    subject.observable().subscribe_completed(
+    let _subscription = subject.observable().subscribe_completed(
         |_x| panic!("no value should be pushed"),
         || completed = true
     );
@@ -224,7 +224,7 @@ fn subject_on_completed() {
 fn subject_on_error() {
     let mut subject = Subject::<u8, u8>::new();
     let mut error = 0;
-    subject.observable().subscribe_error(
+    let _subscription = subject.observable().subscribe_error(
         |_x| panic!("no value should be pushed"),
         || panic!("subject should not complete"),
         |err| error = err
@@ -262,8 +262,8 @@ fn subject_clones_once_per_observer() {
     };
 
     // Subscribe twice.
-    subject.observable().subscribe_next(|_x| first_called = true);
-    subject.observable().subscribe_next(|_x| second_called = true);
+    let _s1 = subject.observable().subscribe_next(|_x| first_called = true);
+    let _s2 = subject.observable().subscribe_next(|_x| second_called = true);
 
     // Nothing should have been cloned yet.
     assert_eq!(0, *counter.counter.borrow());
