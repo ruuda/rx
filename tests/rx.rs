@@ -276,7 +276,50 @@ fn subject_clones_once_per_observer() {
     assert!(second_called);
 }
 
+#[test]
+fn subject_drop_subscription() {
+    let mut subject = Subject::<u8, ()>::new();
+    let mut received = Vec::new();
+    let subscription = subject.observable().subscribe_next(|x| received.push(x));
+
+    subject.on_next(2);
+    subject.on_next(3);
+    subject.on_next(5);
+
+    assert_eq!(&[2u8, 3, 5], &received[..]);
+
+    drop(subscription);
+
+    subject.on_next(7);
+    subject.on_next(11);
+
+    // Values pushed after drop should not have been invoked.
+    assert_eq!(&[2u8, 3, 5], &received[..]);
+}
+
+#[test]
+fn subject_drop_subscription_multi() {
+    let mut subject = Subject::<u8, ()>::new();
+    let mut received = Vec::new();
+    let _s1 = subject.observable().subscribe_next(|x| received.push(x));
+    let s2 = subject.observable().subscribe_error(
+        |_x| panic!("no value should be pushed after dropping subscription"),
+        || panic!("completion should not be signalled after dropping subscription"),
+        |_err| panic!("failure should not be signalled after dropping subscription")
+    );
+
+    drop(s2);
+
+    subject.on_next(2);
+    subject.on_next(3);
+    subject.on_next(5);
+    subject.on_completed();
+
+    assert_eq!(&[2u8, 3, 5], &received[..]);
+}
+
 // TODO: Test multiple subscriptions and combinations of values and completed/error.
+// TODO: Add better tests for dropping the subject subscription.
 
 // Transform tests
 
