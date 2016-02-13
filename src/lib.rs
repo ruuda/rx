@@ -66,7 +66,7 @@ mod observer;
 mod subject;
 mod transform;
 
-pub use generate::error;
+pub use generate::{Never, error};
 pub use observable::Observable;
 pub use observer::Observer;
 pub use subject::Subject;

@@ -7,7 +7,7 @@
 
 extern crate rx;
 
-use rx::{Observable, Observer, Subject};
+use rx::{Never, Observable, Observer, Subject};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -24,6 +24,20 @@ fn error() {
         |e| received_err = Some(e)
     );
     assert_eq!(Some(error), received_err);
+}
+
+#[test]
+fn never() {
+    let mut never = Never::new();
+    let _subscription = never.subscribe_error(
+        |_x: u8| panic!("never observable should not produce a value"),
+        || panic!("never observable should not complete"),
+        |_err: ()| panic!("never observable should not fail")
+    );
+
+    // Without something like a message loop, the observable cannot suddenly
+    // start pushing values, so if it did not produce anything here, it never
+    // will.
 }
 
 // Option tests
