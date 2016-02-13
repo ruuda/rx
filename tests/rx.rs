@@ -14,19 +14,6 @@ use std::rc::Rc;
 // Generator tests
 
 #[test]
-fn error() {
-    let error = "epic fail";
-    let mut observable = rx::error(error);
-    let mut received_err = None;
-    observable.subscribe_error(
-        |_x: u8| panic!("rx::error should not produce value"),
-        || panic!("rx::error should not complete"),
-        |e| received_err = Some(e)
-    );
-    assert_eq!(Some(error), received_err);
-}
-
-#[test]
 fn never() {
     let mut never = Never::new();
     let _subscription = never.subscribe_error(
