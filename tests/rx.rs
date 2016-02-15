@@ -335,6 +335,18 @@ fn map() {
 }
 
 #[test]
+fn map_does_not_change_error() {
+    let mut error = None;
+    let mut mapped = Err(23_u32).map(|x: u32| format!("{}", x));
+    mapped.subscribe_error(
+        |_x: String| panic!("mapped error should not produce a value"),
+        || panic!("mapped error should not complete"),
+        |err| error = Some(err)
+    );
+    assert_eq!(Some(23), error);
+}
+
+#[test]
 fn map_err() {
     let mut error = None;
     let mut mapped = Err(23_u32).map_err(|x| x * 2);
@@ -344,4 +356,13 @@ fn map_err() {
         |err| error = Some(err)
     );
     assert_eq!(Some(46), error);
+}
+
+#[test]
+fn map_err_does_not_change_values() {
+    let mut values = &[2u8, 3, 5, 7, 11, 13];
+    let mut received = Vec::new();
+    let mut mapped = values.map_err(|_unit| 17u8);
+    mapped.subscribe_next(|&x| received.push(x));
+    assert_eq!(&values[..], &received[..]);
 }
