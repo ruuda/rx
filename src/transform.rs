@@ -73,3 +73,68 @@ where Source: Observable,
         self.source.subscribe(mapped_observer)
     }
 }
+
+struct MapErrObserver<T, E, F, O, G>
+where O: Observer<T, F>,
+      G: Fn(E) -> F {
+    observer: O,
+    f: G,
+    _phantom_t: PhantomData<*mut T>,
+    _phantom_e: PhantomData<*mut E>,
+    _phantom_f: PhantomData<*mut F>,
+}
+
+impl<T, E, F, O, G> Observer<T, E> for MapErrObserver<T, E, F, O, G>
+where T: Clone,
+      E: Clone,
+      F: Clone,
+      O: Observer<T, F>,
+      G: Fn(E) -> F {
+    fn on_next(&mut self, item: T) {
+        self.observer.on_next(item);
+    }
+
+    fn on_completed(self) {
+        self.observer.on_completed();
+    }
+
+    fn on_error(self, error: E) {
+        self.observer.on_error(self.f.call((error,)));
+    }
+}
+
+/// The result of calling `map_err` on an observable.
+pub struct MapErrObservable<'a, Source: 'a + ?Sized, G> {
+    source: &'a mut Source,
+    f: G
+}
+
+impl<'a, Source: 'a + ?Sized, G> MapErrObservable<'a, Source, G> {
+    pub fn new(source: &'a mut Source, f: G) -> MapErrObservable<'a, Source, G> {
+        MapErrObservable {
+            source: source,
+            f: f,
+        }
+    }
+}
+
+impl<'a, Source, F, G> Observable for MapErrObservable<'a, Source, G>
+where Source: Observable,
+      F: Clone,
+      G: Fn(<Source as Observable>::Error) -> F {
+    type Item = <Source as Observable>::Item;
+    type Error = F;
+    type Subscription = <Source as Observable>::Subscription;
+
+    fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
+        where O: Observer<Self::Item, Self::Error> {
+        let mapped_observer = MapErrObserver {
+            observer: observer,
+            f: &self.f,
+            _phantom_t: PhantomData,
+            _phantom_e: PhantomData,
+            _phantom_f: PhantomData,
+        };
+        self.source.subscribe(mapped_observer)
+    }
+}

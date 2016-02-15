@@ -333,3 +333,15 @@ fn map() {
     mapped.subscribe_next(|x| received.push(x));
     assert_eq!(&expected[..], &received[..]);
 }
+
+#[test]
+fn map_err() {
+    let mut error = None;
+    let mut mapped = Err(23_u32).map_err(|x| x * 2);
+    mapped.subscribe_error(
+        |_x: u32| panic!("mapped error should not produce a value"),
+        || panic!("mapped error should not complete"),
+        |err| error = Some(err)
+    );
+    assert_eq!(Some(46), error);
+}
