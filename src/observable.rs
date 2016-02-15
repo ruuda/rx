@@ -179,7 +179,7 @@ pub trait Observable {
     // `subscribe_error`?
     /// Transforms an observable by applying f the error in case of failure.
     fn map_err<'s, F, G>(&'s mut self, f: G) -> MapErrObservable<'s, Self, G>
-        where G: Fn(Self::Item) -> F {
+        where G: Fn(Self::Error) -> F {
         MapErrObservable::new(self, f)
     }
 }

@@ -121,6 +121,7 @@ impl<'a, Source: 'a + ?Sized, G> MapErrObservable<'a, Source, G> {
 impl<'a, Source, F, G> Observable for MapErrObservable<'a, Source, G>
 where Source: Observable,
       F: Clone,
+      // TODO: This can be FnOnce.
       G: Fn(<Source as Observable>::Error) -> F {
     type Item = <Source as Observable>::Item;
     type Error = F;
