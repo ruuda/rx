@@ -38,7 +38,7 @@ where T: Clone,
     }
 }
 
-/// The result of calling `map` on an observable.
+/// The result of calling `map()` on an observable.
 pub struct MapObservable<'a, Source: 'a + ?Sized, F> {
     source: &'a mut Source,
     f: F
@@ -74,7 +74,7 @@ where Source: Observable,
     }
 }
 
-struct MapErrObserver<T, E, F, O, G>
+struct MapErrorObserver<T, E, F, O, G>
 where O: Observer<T, F>,
       G: Fn(E) -> F {
     observer: O,
@@ -84,7 +84,7 @@ where O: Observer<T, F>,
     _phantom_f: PhantomData<*mut F>,
 }
 
-impl<T, E, F, O, G> Observer<T, E> for MapErrObserver<T, E, F, O, G>
+impl<T, E, F, O, G> Observer<T, E> for MapErrorObserver<T, E, F, O, G>
 where T: Clone,
       E: Clone,
       F: Clone,
@@ -103,22 +103,22 @@ where T: Clone,
     }
 }
 
-/// The result of calling `map_err` on an observable.
-pub struct MapErrObservable<'a, Source: 'a + ?Sized, G> {
+/// The result of calling `map_error()` on an observable.
+pub struct MapErrorObservable<'a, Source: 'a + ?Sized, G> {
     source: &'a mut Source,
     f: G
 }
 
-impl<'a, Source: 'a + ?Sized, G> MapErrObservable<'a, Source, G> {
-    pub fn new(source: &'a mut Source, f: G) -> MapErrObservable<'a, Source, G> {
-        MapErrObservable {
+impl<'a, Source: 'a + ?Sized, G> MapErrorObservable<'a, Source, G> {
+    pub fn new(source: &'a mut Source, f: G) -> MapErrorObservable<'a, Source, G> {
+        MapErrorObservable {
             source: source,
             f: f,
         }
     }
 }
 
-impl<'a, Source, F, G> Observable for MapErrObservable<'a, Source, G>
+impl<'a, Source, F, G> Observable for MapErrorObservable<'a, Source, G>
 where Source: Observable,
       F: Clone,
       // TODO: This can be FnOnce.
@@ -129,7 +129,7 @@ where Source: Observable,
 
     fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error> {
-        let mapped_observer = MapErrObserver {
+        let mapped_observer = MapErrorObserver {
             observer: observer,
             f: &self.f,
             _phantom_t: PhantomData,

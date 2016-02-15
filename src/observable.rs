@@ -8,7 +8,7 @@
 use observer::Observer;
 use observer::{NextObserver, CompletedObserver, ErrorObserver, OptionObserver, ResultObserver};
 use std::fmt::Debug;
-use transform::{MapErrObservable, MapObservable};
+use transform::{MapErrorObservable, MapObservable};
 
 /// A stream of values.
 ///
@@ -175,11 +175,9 @@ pub trait Observable {
         MapObservable::new(self, f)
     }
 
-    // TODO: Consistency with the standard library, or consistency with
-    // `subscribe_error`?
     /// Transforms an observable by applying f the error in case of failure.
-    fn map_err<'s, F, G>(&'s mut self, f: G) -> MapErrObservable<'s, Self, G>
+    fn map_error<'s, F, G>(&'s mut self, f: G) -> MapErrorObservable<'s, Self, G>
         where G: Fn(Self::Error) -> F {
-        MapErrObservable::new(self, f)
+        MapErrorObservable::new(self, f)
     }
 }
