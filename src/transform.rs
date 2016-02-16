@@ -121,7 +121,6 @@ impl<'a, Source: 'a + ?Sized, G> MapErrorObservable<'a, Source, G> {
 impl<'a, Source, F, G> Observable for MapErrorObservable<'a, Source, G>
 where Source: Observable,
       F: Clone,
-      // TODO: This can be FnOnce.
       G: Fn(<Source as Observable>::Error) -> F {
     type Item = <Source as Observable>::Item;
     type Error = F;
@@ -129,6 +128,11 @@ where Source: Observable,
 
     fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error> {
+        // Note that the function `G` cannot be `FnOnce` because every observer
+        // receives a copy of it. Alternatively, `map_error` could be
+        // implemented with a subject to only call the mapping function once,
+        // but that would prevent stream fusion and require memory and a virtual
+        // function call.
         let mapped_observer = MapErrorObserver {
             observer: observer,
             f: &self.f,
