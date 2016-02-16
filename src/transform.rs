@@ -143,3 +143,61 @@ where Source: Observable,
         self.source.subscribe(mapped_observer)
     }
 }
+
+struct ContinueWithObserver<'a, T: Clone, E: Clone, ObNext: 'a, O>
+where ObNext: Observable<Item = T, Error = E>,
+      O: Observer<T, E> {
+    observer: O,
+    next: &'a mut ObNext,
+}
+
+impl<'a, T, E, ObNext, O> Observer<T, E> for ContinueWithObserver<'a, T, E, ObNext, O>
+where T: Clone,
+      E: Clone,
+      ObNext: Observable<Item = T, Error = E>,
+      O: Observer<T, E> {
+    fn on_next(&mut self, item: T) {
+        self.observer.on_next(item);
+    }
+
+    fn on_completed(self) {
+        // TODO: Keep subscription alive.
+        self.next.subscribe(self.observer);
+    }
+
+    fn on_error(self, error: E) {
+        self.observer.on_error(error);
+    }
+}
+
+/// The result of calling `continue_with()` on an observable.
+pub struct ContinueWithObservable<'a, Source: 'a + ?Sized, ObNext: 'a + ?Sized> {
+    source: &'a mut Source,
+    next: &'a mut ObNext,
+}
+
+impl<'a, Source: 'a + ?Sized, ObNext: 'a + ?Sized> ContinueWithObservable<'a, Source, ObNext> {
+    pub fn new(source: &'a mut Source, next: &'a mut ObNext) -> ContinueWithObservable<'a, Source, ObNext> {
+        ContinueWithObservable {
+            source: source,
+            next: next,
+        }
+    }
+}
+
+impl<'a, T: Clone, E: Clone, Source, ObNext> Observable for ContinueWithObservable<'a, Source, ObNext>
+where Source: Observable<Item = T, Error = E>,
+      ObNext: Observable<Item = T, Error = E> {
+    type Item = <Source as Observable>::Item;
+    type Error = <Source as Observable>::Error;
+    type Subscription = <Source as Observable>::Subscription;
+
+    fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
+        where O: Observer<Self::Item, Self::Error> {
+        let continued_observer = ContinueWithObserver {
+            observer: observer,
+            next: self.next,
+        };
+        self.source.subscribe(continued_observer)
+    }
+}

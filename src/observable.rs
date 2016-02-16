@@ -8,7 +8,7 @@
 use observer::Observer;
 use observer::{NextObserver, CompletedObserver, ErrorObserver, OptionObserver, ResultObserver};
 use std::fmt::Debug;
-use transform::{MapErrorObservable, MapObservable};
+use transform::{ContinueWithObservable, MapErrorObservable, MapObservable};
 
 /// A stream of values.
 ///
@@ -179,5 +179,16 @@ pub trait Observable {
     fn map_error<'s, F, G>(&'s mut self, f: G) -> MapErrorObservable<'s, Self, G>
         where G: Fn(Self::Error) -> F {
         MapErrorObservable::new(self, f)
+    }
+
+    /// Joins two observables sequentially.
+    ///
+    /// After the current observable completes, an observer will start to
+    /// receive values from `next` until that observable completes or fails.
+    /// The `next` observable is only subscribed to after the current observable
+    /// completes.
+    fn continue_with<'s, ObNext>(&'s mut self, next: &'s mut ObNext) -> ContinueWithObservable<'s, Self, ObNext>
+        where ObNext: Observable<Item = Self::Item, Error = Self::Error> {
+        ContinueWithObservable::new(self, next)
     }
 }

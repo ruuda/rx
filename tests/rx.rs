@@ -367,3 +367,13 @@ fn map_error_does_not_change_values() {
     mapped.subscribe_next(|&x| received.push(x));
     assert_eq!(&values[..], &received[..]);
 }
+
+#[test]
+fn continue_with() {
+    let (mut first, mut second) = (&[2u8, 3, 5, 7], &[11u8, 13, 17, 19]);
+    let expected = &[2u8, 3, 5, 7, 11, 13, 17, 19];
+    let mut received = Vec::new();
+    let mut continued = first.continue_with(&mut second);
+    continued.subscribe_next(|&x| received.push(x));
+    assert_eq!(&expected[..], &received[..]);
+}
