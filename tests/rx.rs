@@ -319,6 +319,46 @@ fn subject_drop_subscription_multi() {
     assert_eq!(&[2u8, 3, 5], &received[..]);
 }
 
+#[test]
+fn subject_continue_with() {
+    let mut first = Subject::<u8, ()>::new();
+    let mut second = Subject::<u8, ()>::new();
+    let mut received = Vec::new();
+    let mut completed = false;
+    let _subscription = {
+        let (mut ofirst, mut osecond) = (first.observable(), second.observable());
+        let mut continued = ofirst.continue_with(&mut osecond);
+            continued.subscribe_completed(
+            |x| received.push(x),
+            || completed = true,
+        )
+    };
+
+    first.on_next(2);
+    assert_eq!(&[2u8][..], &received[..]);
+
+    // If `second` produces a value, it should not be pushed,
+    // because `first` has not yet completed.
+    second.on_next(3);
+    assert_eq!(&[2u8][..], &received[..]);
+
+    first.on_next(5);
+    assert_eq!(&[2u8, 5][..], &received[..]);
+
+    // Completing `first` should not complete the continuation,
+    // nor should it push a value.
+    first.on_completed();
+    assert_eq!(&[2u8, 5][..], &received[..]);
+    assert!(!completed);
+
+    // Now pushing to `second` should have an effect, because `first` completed.
+    second.on_next(7);
+    assert_eq!(&[2u8, 5, 7][..], &received[..]);
+
+    second.on_completed();
+    assert!(completed);
+}
+
 // TODO: Test multiple subscriptions and combinations of values and completed/error.
 // TODO: Add better tests for dropping the subject subscription.
 
