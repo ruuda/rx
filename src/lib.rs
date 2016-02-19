@@ -61,6 +61,7 @@
 use std::iter::IntoIterator;
 
 mod generate;
+mod lifeline;
 mod observable;
 mod observer;
 mod subject;
