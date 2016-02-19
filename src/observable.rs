@@ -43,6 +43,7 @@ pub trait Observable {
     type Error: Clone;
 
     /// The result of subscribing an observer.
+    // TODO: This drop bound is not required and it only complicates stuff, remove it.
     type Subscription: Drop;
 
     /// Subscribes an observer and returns the subscription.
