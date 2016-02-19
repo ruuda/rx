@@ -5,6 +5,7 @@
 // you may not use this file except in compliance with the License.
 // A copy of the License has been included in the root of the repository.
 
+use lifeline;
 use observable::Observable;
 use observer::Observer;
 use std::marker::PhantomData;
@@ -144,11 +145,26 @@ where Source: Observable,
     }
 }
 
+pub struct ContinueWithSubscription<Source: Observable, ObNext: Observable> {
+    #[allow(dead_code)] // This code is not dead, it keeps the subscription alive.
+    subs_source: Source::Subscription,
+
+    #[allow(dead_code)] // Same here.
+    subs_next: lifeline::Lifeline<Option<ObNext::Subscription>>,
+}
+
+impl<Source: Observable, ObNext: Observable> Drop for ContinueWithSubscription<Source, ObNext> {
+    fn drop(&mut self) {
+        // This is a no-op, the lifeline handles everything automatically.
+    }
+}
+
 struct ContinueWithObserver<'a, T: Clone, E: Clone, ObNext: 'a, O>
 where ObNext: Observable<Item = T, Error = E>,
       O: Observer<T, E> {
     observer: O,
     next: &'a mut ObNext,
+    subscription: lifeline::Owner<Option<ObNext::Subscription>>,
 }
 
 impl<'a, T, E, ObNext, O> Observer<T, E> for ContinueWithObserver<'a, T, E, ObNext, O>
@@ -160,9 +176,12 @@ where T: Clone,
         self.observer.on_next(item);
     }
 
-    fn on_completed(self) {
-        // TODO: Keep subscription alive.
-        self.next.subscribe(self.observer);
+    fn on_completed(mut self) {
+        use std::mem;
+        let subs_next = self.next.subscribe(self.observer);
+        self.subscription.with_mut_value(|subs| {
+            mem::replace(subs, Some(subs_next));
+        });
     }
 
     fn on_error(self, error: E) {
@@ -190,14 +209,20 @@ where Source: Observable<Item = T, Error = E>,
       ObNext: Observable<Item = T, Error = E> {
     type Item = <Source as Observable>::Item;
     type Error = <Source as Observable>::Error;
-    type Subscription = <Source as Observable>::Subscription;
+    type Subscription = ContinueWithSubscription<Source, ObNext>;
 
     fn subscribe<O>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error> {
+        let (life, owner) = lifeline::new(None);
         let continued_observer = ContinueWithObserver {
             observer: observer,
             next: self.next,
+            subscription: owner,
         };
-        self.source.subscribe(continued_observer)
+        let subs_source = self.source.subscribe(continued_observer);
+        ContinueWithSubscription {
+            subs_source: subs_source,
+            subs_next: life,
+        }
     }
 }

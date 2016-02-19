@@ -321,18 +321,19 @@ fn subject_drop_subscription_multi() {
 
 #[test]
 fn subject_continue_with() {
+    use std::mem;
     let mut first = Subject::<u8, ()>::new();
     let mut second = Subject::<u8, ()>::new();
     let mut received = Vec::new();
     let mut completed = false;
-    let _subscription = {
-        let (mut ofirst, mut osecond) = (first.observable(), second.observable());
-        let mut continued = ofirst.continue_with(&mut osecond);
-            continued.subscribe_completed(
-            |x| received.push(x),
-            || completed = true,
-        )
-    };
+    {
+        let subscription = first.observable()
+            .continue_with(&mut second.observable())
+            .subscribe_completed(|x| received.push(x), || completed = true);
+
+        // TODO: How can I keep this alive without the compiler complaining about borrows?
+        mem::forget(subscription);
+    }
 
     first.on_next(2);
     assert_eq!(&[2u8][..], &received[..]);

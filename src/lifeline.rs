@@ -17,19 +17,20 @@ use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
 /// Struct that controls the lifetime of the value in the lifeline-owner pair.
-struct Lifeline<T> {
+pub struct Lifeline<T> {
+    #[allow(dead_code)] // This code is not dead, the Rc keeps the value alive.
     value: Rc<RefCell<Option<T>>>,
 }
 
 
 /// Struct that allows access to the value in the lifeline-owner pair.
-struct Owner<T> {
+pub struct Owner<T> {
     value: Weak<RefCell<Option<T>>>,
 }
 
 impl<T> Owner<T> {
     /// Performs the action on the stored value if it is still alive.
-    fn with_value<F: FnOnce(&T)>(&self, action: F) {
+    pub fn with_value<F: FnOnce(&T)>(&self, action: F) {
         if let Some(cell) = self.value.upgrade() {
             if let Some(ref value) = *cell.borrow() {
                 action(value);
@@ -38,7 +39,7 @@ impl<T> Owner<T> {
     }
 
     /// Performs the action on the stored value if it is still alive.
-    fn with_mut_value<F: FnOnce(&mut T)>(&mut self, action: F) {
+    pub fn with_mut_value<F: FnOnce(&mut T)>(&mut self, action: F) {
         if let Some(cell) = self.value.upgrade() {
             if let Some(ref mut value) = *cell.borrow_mut() {
                 action(value);
@@ -47,7 +48,7 @@ impl<T> Owner<T> {
     }
 
     /// Returns the stored value if it is still alive.
-    fn take(self) -> Option<T> {
+    pub fn take(self) -> Option<T> {
         if let Some(cell) = self.value.upgrade() {
             cell.borrow_mut().take()
         } else {
@@ -57,7 +58,7 @@ impl<T> Owner<T> {
 }
 
 /// Creates a value with decoupled lifetime and ownership.
-fn new<T>(value: T) -> (Lifeline<T>, Owner<T>) {
+pub fn new<T>(value: T) -> (Lifeline<T>, Owner<T>) {
     let rc = Rc::new(RefCell::new(Some(value)));
     let owner = Owner { value: Rc::downgrade(&rc) };
     let lifeline = Lifeline { value: rc };
