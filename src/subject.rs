@@ -12,6 +12,7 @@ use std::rc;
 struct ObserverBox<T, E> {
     observer: Box<BoxedObserver<T, E>>,
 
+    // TODO: Use Lifeline instead of this hack.
     /// If the Rc is still alive, the observer should be kept alive.
     alive: rc::Weak<()>,
 }
