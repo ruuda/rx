@@ -5,17 +5,9 @@
 // you may not use this file except in compliance with the License.
 // A copy of the License has been included in the root of the repository.
 
+use lifeline;
 use observable::Observable;
 use observer::{Observer, BoxedObserver};
-use std::rc;
-
-struct ObserverBox<T, E> {
-    observer: Box<BoxedObserver<T, E>>,
-
-    // TODO: Use Lifeline instead of this hack.
-    /// If the Rc is still alive, the observer should be kept alive.
-    alive: rc::Weak<()>,
-}
 
 /// Both an observer and observable.
 ///
@@ -23,7 +15,7 @@ struct ObserverBox<T, E> {
 ///
 /// TODO: Add example.
 pub struct Subject<T, E> {
-    observers: Vec<ObserverBox<T, E>>,
+    observers: Vec<lifeline::Owner<Box<BoxedObserver<T, E>>>>,
 }
 
 /// Proxy object that exposes the observable part of a subject.
@@ -31,11 +23,9 @@ pub struct SubjectObservable<'s, T: 's, E: 's> {
     subject: &'s mut Subject<T, E>,
 }
 
-pub struct SubjectSubscription {
-    /// The owner of the unit that `ObserverBox` has a weak reference to.
-    ///
-    /// Once this is dropped, the observer will not be used any more.
-    _alive: rc::Rc<()>,
+pub struct SubjectSubscription<T, E> {
+    #[allow(dead_code)] // This code is not dead, it keeps the observer alive.
+    alive: lifeline::Lifeline<Box<BoxedObserver<T, E>>>,
 }
 
 impl<T, E> Subject<T, E> {
@@ -60,37 +50,29 @@ impl<T, E> Subject<T, E> {
 
 impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
     fn on_next(&mut self, item: T) {
-        for observer_box in &mut self.observers {
-            if let Some(_) = observer_box.alive.upgrade() {
-                // Subscription was not dropped, invoke method.
-                observer_box.observer.on_next(item.clone());
-            } else {
-                // TODO: Remove observer from list, the subscription has been
-                // dropped.
-            }
+        for observer_owner in &mut self.observers {
+            observer_owner.with_mut_value(|observer| {
+                // The subscription was not dropped, invoke the method.
+                observer.on_next(item.clone());
+            });
         }
+        // TODO: Remove observer from list if the subscription has been dropped.
     }
 
     fn on_completed(mut self) {
-        for observer_box in self.observers.drain(..) {
-            if let Some(_) = observer_box.alive.upgrade() {
-                // Subscription was not dropped, invoke method.
-                observer_box.observer.on_completed_box();
-            } else {
-                // TODO: Remove observer from list, the subscription has been
-                // dropped.
+        for observer_owner in self.observers.drain(..) {
+            if let Some(observer) = observer_owner.take() {
+                // The subscription was not dropped, invoke the method.
+                observer.on_completed_box();
             }
         }
     }
 
     fn on_error(mut self, error: E) {
-        for observer_box in self.observers.drain(..) {
-            if let Some(_) = observer_box.alive.upgrade() {
-                // Subscription was not dropped, invoke method.
-                observer_box.observer.on_error_box(error.clone());
-            } else {
-                // TODO: Remove observer from list, the subscription has been
-                // dropped.
+        for observer_owner in self.observers.drain(..) {
+            if let Some(observer) = observer_owner.take() {
+                // The subscription was not dropped, invoke the method.
+                observer.on_error_box(error.clone());
             }
         }
     }
@@ -99,24 +81,20 @@ impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
 impl<'s, T: Clone, E: Clone> Observable for SubjectObservable<'s, T, E> {
     type Item = T;
     type Error = E;
-    type Subscription = SubjectSubscription;
+    type Subscription = SubjectSubscription<T, E>;
 
     fn subscribe<O: 'static>(&mut self, observer: O) -> Self::Subscription
         where O: Observer<Self::Item, Self::Error> {
         let boxed: Box<BoxedObserver<T, E>> = Box::new(observer);
-        let alive_owner = rc::Rc::new(());
-        let observer_box = ObserverBox {
-            observer: boxed,
-            alive: rc::Rc::downgrade(&alive_owner),
-        };
-        self.subject.observers.push(observer_box);
+        let (alive, owner) = lifeline::new(boxed);
+        self.subject.observers.push(owner);
         SubjectSubscription {
-            _alive: alive_owner,
+            alive: alive,
         }
     }
 }
 
-impl Drop for SubjectSubscription {
+impl<T, E> Drop for SubjectSubscription<T, E> {
     fn drop(&mut self) {
         // Nothing to do, the Rc already does the right thing.
     }
