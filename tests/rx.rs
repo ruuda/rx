@@ -340,6 +340,25 @@ fn subject_drop_in_handler() {
     assert_eq!(&[2u8], &received[..]);
 }
 
+
+#[test]
+fn this_causes_sigsegv() {
+    // The type of `subscription` is `rx::subject::SubjectSubscription<u32, ()>`
+    // which is private.
+    let func_returning_private_struct = || {
+        let mut subject = Subject::<u32, ()>::new();
+        let mut opt: Option<Box<u32>> = None;
+        let subscription = subject.observable().subscribe_next(|x| {
+            // This prints "opt was Some(random memory contents)".
+            println!("opt was {:?}, x was {:?}", opt.take(), x);
+        });
+        (subject, subscription)
+    };
+    let (mut subject, subscription) = func_returning_private_struct();
+    subject.on_next(2);
+    // This causes a sigsegv after printing.
+}
+
 #[test]
 fn subject_continue_with() {
     use std::mem;
