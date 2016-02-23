@@ -30,15 +30,6 @@ pub struct Owner<T> {
 
 impl<T> Owner<T> {
     /// Performs the action on the stored value if it is still alive.
-    pub fn with_value<F: FnOnce(&T)>(&self, action: F) {
-        if let Some(cell) = self.value.upgrade() {
-            if let Some(ref value) = *cell.borrow() {
-                action(value);
-            }
-        }
-    }
-
-    /// Performs the action on the stored value if it is still alive.
     pub fn with_mut_value<F: FnOnce(&mut T)>(&mut self, action: F) {
         if let Some(cell) = self.value.upgrade() {
             if let Some(ref mut value) = *cell.borrow_mut() {
