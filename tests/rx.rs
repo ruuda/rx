@@ -320,6 +320,27 @@ fn subject_drop_subscription_multi() {
 }
 
 #[test]
+fn subject_drop_in_handler() {
+    let mut subject = Subject::<u8, ()>::new();
+    let mut received = Vec::new();
+    let mut subscription_opt: Option<Box<Drop>> = None;
+    let subscription = subject.observable().subscribe_next(|x| {
+        received.push(x);
+        assert!(subscription_opt.is_some());
+        drop(subscription_opt.take().unwrap());
+    });
+    // TODO: this assignment is not unused, or this code doing something illegal.
+    // Either way, this is a bug in rustc.
+    subscription_opt = Some(Box::new(subscription));
+
+    subject.on_next(2);
+    assert_eq!(&[2u8], &received[..]);
+
+    subject.on_next(3);
+    assert_eq!(&[2u8], &received[..]);
+}
+
+#[test]
 fn subject_continue_with() {
     use std::mem;
     let mut first = Subject::<u8, ()>::new();
