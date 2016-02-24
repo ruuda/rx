@@ -38,6 +38,20 @@ impl<T> Owner<T> {
         }
     }
 
+    /// Performs the action on the stored value if it is still alive,
+    /// calls `on_dead` otherwise.
+    pub fn with_mut_value_or<F: FnOnce(&mut T), G: FnOnce()>(&mut self,
+                                                             on_alive: F,
+                                                             on_dead: G) {
+        if let Some(cell) = self.value.upgrade() {
+            if let Some(ref mut value) = *cell.borrow_mut() {
+                on_alive(value);
+                return;
+            }
+        }
+        on_dead();
+    }
+
     /// Returns the stored value if it is still alive.
     pub fn take(self) -> Option<T> {
         if let Some(cell) = self.value.upgrade() {

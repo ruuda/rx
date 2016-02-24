@@ -319,6 +319,8 @@ fn subject_drop_subscription_multi() {
     assert_eq!(&[2u8, 3, 5], &received[..]);
 }
 
+// TODO: Add a better test to test internal removal of observer from the list.
+
 #[test]
 fn subject_drop_in_handler() {
     let mut subject = Subject::<u8, ()>::new();

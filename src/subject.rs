@@ -50,13 +50,22 @@ impl<T, E> Subject<T, E> {
 
 impl<T: Clone, E: Clone> Observer<T, E> for Subject<T, E> {
     fn on_next(&mut self, item: T) {
+        let mut remove_indices = Vec::new();
+        let mut i = 0;
         for observer_owner in &mut self.observers {
-            observer_owner.with_mut_value(|observer| {
+            observer_owner.with_mut_value_or(|observer| {
                 // The subscription was not dropped, invoke the method.
                 observer.on_next(item.clone());
+            }, || {
+                // The subscription was dropped, ignore the observer next time.
+                remove_indices.push(i);
             });
+            i += 1;
         }
-        // TODO: Remove observer from list if the subscription has been dropped.
+
+        for &rm_i in remove_indices.iter().rev() {
+            self.observers.remove(rm_i);
+        }
     }
 
     fn on_completed(mut self) {
