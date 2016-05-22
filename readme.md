@@ -21,8 +21,8 @@ non-commercial use under the conditions given in the license. If you want to use
 Rx in your GPLv2-licensed software, you can add an [exception][except] to your
 copyright notice.
 
-[ci-img]:    https://travis-ci.org/ruud-v-a/rx.svg?branch=master
-[ci]:        https://travis-ci.org/ruud-v-a/rx
+[ci-img]:    https://travis-ci.org/ruuda/rx.svg?branch=master
+[ci]:        https://travis-ci.org/ruuda/rx
 [crate-img]: http://img.shields.io/crates/v/rx.svg
 [crate]:     https://crates.io/crates/rx
 [rx-sharp]:  https://rx.codeplex.com

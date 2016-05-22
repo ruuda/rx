@@ -6,4 +6,4 @@ license = "Apache-2.0"
 readme = "readme.md"
 keywords = ["reactive", "observable", "async"]
 description = "Reactive programming for Rust"
-repository = "https://github.com/ruud-v-a/rx"
+repository = "https://github.com/ruuda/rx"
